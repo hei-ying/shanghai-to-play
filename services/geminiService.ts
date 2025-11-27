@@ -62,3 +62,36 @@ export const fetchLocationDetails = async (locationName: string): Promise<Travel
     };
   }
 };
+
+export const fetchLocationImage = async (locationName: string): Promise<string | null> => {
+  const isStayHome = locationName.includes("周末哪也不想去") || locationName.includes("宅家");
+  
+  // Construct a prompt optimized for image generation
+  const prompt = isStayHome 
+    ? "A cozy, warm, lo-fi style illustration of a person relaxing at home on a weekend, playing video games or reading, snacks nearby, comfortable atmosphere, soft lighting." 
+    : `A breathtaking, photorealistic travel photography shot of ${locationName} in Shanghai, China. Sunny weather, vibrant colors, wide angle, high resolution, cinematic lighting, 4k.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        imageConfig: {
+          aspectRatio: "16:9",
+        }
+      }
+    });
+
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData && part.inlineData.data) {
+           return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Gemini Image Gen Error:", error);
+    return null;
+  }
+};
